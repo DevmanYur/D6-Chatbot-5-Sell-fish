@@ -76,11 +76,11 @@ def start(update, context):
     tg_id_for_strapi = f'tg_id_{tg_id}'
     data = {'data': {'tg_id': tg_id_for_strapi}}
     strapi_host, strapi_port, strapi_headers = get_strapi_connection()
-    post_cart_response = requests.post(f'{strapi_host}{strapi_port}/api/carts', headers=strapi_headers, json=data)
-    post_cart_response.raise_for_status()
+    response = requests.post(f'{strapi_host}{strapi_port}/api/carts', headers=strapi_headers, json=data)
+    response.raise_for_status()
 
-    json_cart = post_cart_response.json()
-    new_cart_id = json_cart['data']['documentId']
+    cart = response.json()
+    new_cart_id = cart['data']['documentId']
     callback_data_menu = get_callback_data(cart_id = new_cart_id, action = 'M')
     callback_data_cart = get_callback_data(cart_id = new_cart_id, action = 'C')
     keyboard = []
