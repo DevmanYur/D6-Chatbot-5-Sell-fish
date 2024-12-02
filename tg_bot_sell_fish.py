@@ -59,7 +59,7 @@ def handle_users_reply(update, context):
         'Выбор после Корзины': choice_from_cart,
         'Выбор после Продукта' : choice_from_product,
         "Выбор после e-mail" : choice_from_email,
-        "Выбор после телефона" : end_finish
+        "Выбор после телефона" : choice_from_phone
 
     }
     state_handler = states_functions[user_state]
@@ -136,7 +136,7 @@ def choice_from_email(update, context):
     return "Выбор после телефона"
 
 
-def end_finish(update, context):
+def choice_from_phone(update, context):
     text = 'Заказ оформлен'
     update.message.reply_text(text=text)
     return ''
