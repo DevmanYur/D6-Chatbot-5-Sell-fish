@@ -261,20 +261,20 @@ def get_product(update, context):
 
         cartitem = response.json()
         if cartitem['data'] == []:
-            data = {'data': {'quantity': count,
+            cartitem_property = {'data': {'quantity': count,
                              'product': product_id,
                              'cart': cart_id}}
-            response = requests.post(f'{strapi_host}{strapi_port}/api/cartitems', headers=strapi_headers, json=data)
+            response = requests.post(f'{strapi_host}{strapi_port}/api/cartitems', headers=strapi_headers, json=cartitem_property)
             response.raise_for_status()
 
         if cartitem['data'] != []:
             cartitem_doc_id = cartitem['data'][0]['documentId']
             before_quantity = cartitem['data'][0]['quantity']
             after_quantity = int(before_quantity) + int(count)
-            data = {'data': {'quantity': after_quantity
+            cartitem_property = {'data': {'quantity': after_quantity
                              }
                     }
-            response = requests.put(f'{strapi_host}{strapi_port}/api/cartitems/{cartitem_doc_id}', headers=strapi_headers, json=data)
+            response = requests.put(f'{strapi_host}{strapi_port}/api/cartitems/{cartitem_doc_id}', headers=strapi_headers, json=cartitem_property)
             response.raise_for_status()
 
     response = requests.get(f'{strapi_host}{strapi_port}/api/products/{product_id}', headers=strapi_headers)
