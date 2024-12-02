@@ -81,11 +81,11 @@ def start(update, context):
 
     cart = response.json()
     new_cart_id = cart['data']['documentId']
-    callback_data_menu = get_callback_data(cart_id = new_cart_id, action = 'M')
-    callback_data_cart = get_callback_data(cart_id = new_cart_id, action = 'C')
+    menu_callback_data = get_callback_data(cart_id = new_cart_id, action = 'M')
+    cart_callback_data = get_callback_data(cart_id = new_cart_id, action = 'C')
     keyboard = []
-    keyboard.append([InlineKeyboardButton("Меню", callback_data=callback_data_menu)])
-    keyboard.append([InlineKeyboardButton("Корзина", callback_data=callback_data_cart)])
+    keyboard.append([InlineKeyboardButton("Меню", callback_data=menu_callback_data)])
+    keyboard.append([InlineKeyboardButton("Корзина", callback_data=cart_callback_data)])
     reply_markup = InlineKeyboardMarkup(keyboard)
     update.message.reply_text(text= text, reply_markup=reply_markup)
     return "Выбор после start"
@@ -148,7 +148,7 @@ def get_menu(update, context):
     user_reply = query.data
     cart_id, product_id, action, count, condition1, condition2 = user_reply.split('&')
 
-    callback_data_cart = get_callback_data(cart_id=cart_id, action='C')
+    cart_callback_data = get_callback_data(cart_id=cart_id, action='C')
 
     strapi_host, strapi_port, strapi_headers = get_strapi_connection()
     response = requests.get(f'{strapi_host}{strapi_port}/api/products', headers=strapi_headers)
@@ -164,7 +164,7 @@ def get_menu(update, context):
         keyboard_group = []
         keyboard_group.append(InlineKeyboardButton(title, callback_data=callback_data))
         keyboard.append(keyboard_group)
-    keyboard.append([InlineKeyboardButton("Корзина", callback_data=callback_data_cart)])
+    keyboard.append([InlineKeyboardButton("Корзина", callback_data=cart_callback_data)])
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     context.bot.send_message(chat_id=query.message.chat_id, text="Меню",reply_markup=reply_markup)
@@ -220,17 +220,17 @@ def get_cart(update, context):
     footer_text = (f'-----------\n\n'
                    f'Итого {total}')
 
-    description_cart = head_text + body_text + footer_text
+    cart_description = head_text + body_text + footer_text
 
-    callback_data_menu = get_callback_data(cart_id=cart_id, action='M')
-    callback_data_order = get_callback_data(cart_id=cart_id, action='Or')
-    keyboard.append([InlineKeyboardButton("Меню", callback_data=callback_data_menu)])
-    keyboard.append([InlineKeyboardButton('Оформить заказ', callback_data=callback_data_order)])
+    menu_callback_data = get_callback_data(cart_id=cart_id, action='M')
+    order_callback_data = get_callback_data(cart_id=cart_id, action='Or')
+    keyboard.append([InlineKeyboardButton("Меню", callback_data=menu_callback_data)])
+    keyboard.append([InlineKeyboardButton('Оформить заказ', callback_data=order_callback_data)])
 
 
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    context.bot.send_message(chat_id=query.message.chat_id, text=description_cart,reply_markup=reply_markup)
+    context.bot.send_message(chat_id=query.message.chat_id, text=cart_description,reply_markup=reply_markup)
     context.bot.delete_message(chat_id=query.message.chat_id, message_id=query.message.message_id)
 
     return 'Выбор после Корзины'
@@ -300,11 +300,11 @@ def get_product(update, context):
         keyboard_group.append(InlineKeyboardButton(f'Добавить {count} кг', callback_data=callback_data))
         keyboard.append(keyboard_group)
 
-    callback_data_menu = get_callback_data(cart_id=cart_id, action='M')
-    callback_data_cart = get_callback_data(cart_id=cart_id, action='C')
+    menu_callback_data = get_callback_data(cart_id=cart_id, action='M')
+    cart_callback_data = get_callback_data(cart_id=cart_id, action='C')
 
-    keyboard.append([InlineKeyboardButton("Меню", callback_data=callback_data_menu)])
-    keyboard.append([InlineKeyboardButton("Корзина", callback_data=callback_data_cart)])
+    keyboard.append([InlineKeyboardButton("Меню", callback_data=menu_callback_data)])
+    keyboard.append([InlineKeyboardButton("Корзина", callback_data=cart_callback_data)])
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     context.bot.send_message(chat_id=query.message.chat_id, text=text,reply_markup=reply_markup)
