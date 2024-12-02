@@ -29,8 +29,7 @@ def get_callback_data(cart_id='_', product_id ='_', action='_', count='_', condi
     return callback_data
 
 
-def headers():
-    load_dotenv()
+def get_headers():
     strapi_token = os.getenv("STRAPI_TOKEN")
     headers = {'Authorization': f'Bearer {strapi_token}'}
     return headers
@@ -74,7 +73,7 @@ def start(update, context):
     tg_id = update.message.chat_id
     tg_id_for_strapi = f'tg_id_{tg_id}'
     data = {'data': {'tg_id': tg_id_for_strapi}}
-    post_cart_response = requests.post(f'http://localhost:1337/api/carts', headers=headers(), json=data)
+    post_cart_response = requests.post(f'http://localhost:1337/api/carts', headers=get_headers(), json=data)
     json_cart = post_cart_response.json()
     new_cart_id = json_cart['data']['documentId']
     callback_data_menu = get_callback_data(cart_id = new_cart_id, action = 'M')
@@ -146,7 +145,7 @@ def get_menu(update, context):
 
     callback_data_cart = get_callback_data(cart_id=cart_id, action='C')
 
-    response = requests.get(f'http://localhost:1337/api/products', headers=headers())
+    response = requests.get(f'http://localhost:1337/api/products', headers=get_headers())
     products = response.json()['data']
 
     keyboard = []
@@ -173,10 +172,10 @@ def get_cart(update, context):
     cart_id, product_id, action, count, condition1, condition2 = user_reply.split('&')
 
     if action == 'Ci':
-        requests.delete(f'http://localhost:1337/api/cartitems/{condition1}', headers=headers())
+        requests.delete(f'http://localhost:1337/api/cartitems/{condition1}', headers=get_headers())
 
     response = requests.get(
-        f'http://localhost:1337/api/carts/{cart_id}?populate[cartitems][populate][0]=product', headers=headers())
+        f'http://localhost:1337/api/carts/{cart_id}?populate[cartitems][populate][0]=product', headers=get_headers())
 
     cart = response.json()
     total = 0
@@ -242,14 +241,14 @@ def get_product(update, context):
         response = requests.get(f'http://localhost:1337/api/cartitems?'
                                 f'filters[cart][documentId][$eq]={cart_id}'
                                 f'&'
-                                f'filters[product][documentId][$eq]={product_id}', headers=headers())
+                                f'filters[product][documentId][$eq]={product_id}', headers=get_headers())
 
         cartitem = response.json()
         if cartitem['data'] == []:
             data = {'data': {'quantity': count,
                              'product': product_id,
                              'cart': cart_id}}
-            requests.post(f'http://localhost:1337/api/cartitems', headers=headers(), json=data)
+            requests.post(f'http://localhost:1337/api/cartitems', headers=get_headers(), json=data)
 
         if cartitem['data'] != []:
             cartitem_doc_id = cartitem['data'][0]['documentId']
@@ -258,9 +257,9 @@ def get_product(update, context):
             data = {'data': {'quantity': after_quantity
                              }
                     }
-            requests.put(f'http://localhost:1337/api/cartitems/{cartitem_doc_id}', headers=headers(), json=data)
+            requests.put(f'http://localhost:1337/api/cartitems/{cartitem_doc_id}', headers=get_headers(), json=data)
 
-    response = requests.get(f'http://localhost:1337/api/products/{product_id}', headers=headers())
+    response = requests.get(f'http://localhost:1337/api/products/{product_id}', headers=get_headers())
     product = response.json()
     title = product['data']['title']
     price = product['data']['price']
