@@ -77,6 +77,8 @@ def start(update, context):
     data = {'data': {'tg_id': tg_id_for_strapi}}
     strapi_host, strapi_port, strapi_headers = get_strapi_connection()
     post_cart_response = requests.post(f'{strapi_host}{strapi_port}/api/carts', headers=strapi_headers, json=data)
+    post_cart_response.raise_for_status()
+
     json_cart = post_cart_response.json()
     new_cart_id = json_cart['data']['documentId']
     callback_data_menu = get_callback_data(cart_id = new_cart_id, action = 'M')
@@ -150,6 +152,8 @@ def get_menu(update, context):
 
     strapi_host, strapi_port, strapi_headers = get_strapi_connection()
     response = requests.get(f'{strapi_host}{strapi_port}/api/products', headers=strapi_headers)
+    response.raise_for_status()
+
     products = response.json()['data']
 
     keyboard = []
@@ -178,10 +182,13 @@ def get_cart(update, context):
     strapi_host, strapi_port, strapi_headers = get_strapi_connection()
 
     if action == 'Ci':
-        requests.delete(f'{strapi_host}{strapi_port}/api/cartitems/{condition1}', headers=strapi_headers)
+        response = requests.delete(f'{strapi_host}{strapi_port}/api/cartitems/{condition1}', headers=strapi_headers)
+        response.raise_for_status()
+
 
     response = requests.get(
         f'{strapi_host}{strapi_port}/api/carts/{cart_id}?populate[cartitems][populate][0]=product', headers=strapi_headers)
+    response.raise_for_status()
 
     cart = response.json()
     total = 0
@@ -250,13 +257,15 @@ def get_product(update, context):
                                 f'filters[cart][documentId][$eq]={cart_id}'
                                 f'&'
                                 f'filters[product][documentId][$eq]={product_id}', headers=strapi_headers)
+        response.raise_for_status()
 
         cartitem = response.json()
         if cartitem['data'] == []:
             data = {'data': {'quantity': count,
                              'product': product_id,
                              'cart': cart_id}}
-            requests.post(f'{strapi_host}{strapi_port}/api/cartitems', headers=strapi_headers, json=data)
+            response = requests.post(f'{strapi_host}{strapi_port}/api/cartitems', headers=strapi_headers, json=data)
+            response.raise_for_status()
 
         if cartitem['data'] != []:
             cartitem_doc_id = cartitem['data'][0]['documentId']
@@ -265,9 +274,11 @@ def get_product(update, context):
             data = {'data': {'quantity': after_quantity
                              }
                     }
-            requests.put(f'{strapi_host}{strapi_port}/api/cartitems/{cartitem_doc_id}', headers=strapi_headers, json=data)
+            response = requests.put(f'{strapi_host}{strapi_port}/api/cartitems/{cartitem_doc_id}', headers=strapi_headers, json=data)
+            response.raise_for_status()
 
     response = requests.get(f'{strapi_host}{strapi_port}/api/products/{product_id}', headers=strapi_headers)
+    response.raise_for_status()
     product = response.json()
     title = product['data']['title']
     price = product['data']['price']
