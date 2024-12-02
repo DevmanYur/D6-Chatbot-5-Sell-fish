@@ -29,10 +29,12 @@ def get_callback_data(cart_id='_', product_id ='_', action='_', count='_', condi
     return callback_data
 
 
-def get_headers():
+def get_strapi_connection():
     strapi_token = os.getenv("STRAPI_TOKEN")
-    headers = {'Authorization': f'Bearer {strapi_token}'}
-    return headers
+    strapi_host = os.getenv("STRAPI_HOST")
+    strapi_port = os.getenv("STRAPI_PORT")
+    strapi_headers = {'Authorization': f'Bearer {strapi_token}'}
+    return strapi_host, strapi_port, strapi_headers
 
 
 def handle_users_reply(update, context):
@@ -73,7 +75,8 @@ def start(update, context):
     tg_id = update.message.chat_id
     tg_id_for_strapi = f'tg_id_{tg_id}'
     data = {'data': {'tg_id': tg_id_for_strapi}}
-    post_cart_response = requests.post(f'http://localhost:1337/api/carts', headers=get_headers(), json=data)
+    strapi_host, strapi_port, strapi_headers = get_strapi_connection()
+    post_cart_response = requests.post(f'{strapi_host}{strapi_port}/api/carts', headers=strapi_headers, json=data)
     json_cart = post_cart_response.json()
     new_cart_id = json_cart['data']['documentId']
     callback_data_menu = get_callback_data(cart_id = new_cart_id, action = 'M')
@@ -145,7 +148,8 @@ def get_menu(update, context):
 
     callback_data_cart = get_callback_data(cart_id=cart_id, action='C')
 
-    response = requests.get(f'http://localhost:1337/api/products', headers=get_headers())
+    strapi_host, strapi_port, strapi_headers = get_strapi_connection()
+    response = requests.get(f'{strapi_host}{strapi_port}/api/products', headers=strapi_headers)
     products = response.json()['data']
 
     keyboard = []
@@ -171,11 +175,13 @@ def get_cart(update, context):
     user_reply = query.data
     cart_id, product_id, action, count, condition1, condition2 = user_reply.split('&')
 
+    strapi_host, strapi_port, strapi_headers = get_strapi_connection()
+
     if action == 'Ci':
-        requests.delete(f'http://localhost:1337/api/cartitems/{condition1}', headers=get_headers())
+        requests.delete(f'{strapi_host}{strapi_port}/api/cartitems/{condition1}', headers=strapi_headers)
 
     response = requests.get(
-        f'http://localhost:1337/api/carts/{cart_id}?populate[cartitems][populate][0]=product', headers=get_headers())
+        f'{strapi_host}{strapi_port}/api/carts/{cart_id}?populate[cartitems][populate][0]=product', headers=strapi_headers)
 
     cart = response.json()
     total = 0
@@ -237,18 +243,20 @@ def get_product(update, context):
     user_reply = query.data
     cart_id, product_id, action, count, condition1, condition2 = user_reply.split('&')
 
+    strapi_host, strapi_port, strapi_headers = get_strapi_connection()
+
     if action == 'S':
-        response = requests.get(f'http://localhost:1337/api/cartitems?'
+        response = requests.get(f'{strapi_host}{strapi_port}/api/cartitems?'
                                 f'filters[cart][documentId][$eq]={cart_id}'
                                 f'&'
-                                f'filters[product][documentId][$eq]={product_id}', headers=get_headers())
+                                f'filters[product][documentId][$eq]={product_id}', headers=strapi_headers)
 
         cartitem = response.json()
         if cartitem['data'] == []:
             data = {'data': {'quantity': count,
                              'product': product_id,
                              'cart': cart_id}}
-            requests.post(f'http://localhost:1337/api/cartitems', headers=get_headers(), json=data)
+            requests.post(f'{strapi_host}{strapi_port}/api/cartitems', headers=strapi_headers, json=data)
 
         if cartitem['data'] != []:
             cartitem_doc_id = cartitem['data'][0]['documentId']
@@ -257,9 +265,9 @@ def get_product(update, context):
             data = {'data': {'quantity': after_quantity
                              }
                     }
-            requests.put(f'http://localhost:1337/api/cartitems/{cartitem_doc_id}', headers=get_headers(), json=data)
+            requests.put(f'{strapi_host}{strapi_port}/api/cartitems/{cartitem_doc_id}', headers=strapi_headers, json=data)
 
-    response = requests.get(f'http://localhost:1337/api/products/{product_id}', headers=get_headers())
+    response = requests.get(f'{strapi_host}{strapi_port}/api/products/{product_id}', headers=strapi_headers)
     product = response.json()
     title = product['data']['title']
     price = product['data']['price']

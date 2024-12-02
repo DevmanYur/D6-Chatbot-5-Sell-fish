@@ -34,6 +34,8 @@ pip install -r requirements.txt
 |:---------------------|:---------------------------------------------------------------------------------------------|
 | TELEGRAM_TOKEN            | токен от API [Telegram ](https://telegram.me/BotFather "получить токен от API Telegram Bot") |
 | STRAPI_TOKEN            | токен от API Strapi                                                                          |
+| STRAPI_HOST            | хост от сервиса Strapi                                                                          |
+| STRAPI_PORT            | порт от сервиса Strapi                                                                          |
 | REDIS_HOST             | хост от сервиса Redis                                                                        |
 | REDIS_PORT             | порт от сервиса Redis                                                                        |
 | REDIS_PASSWORD             | пароль от сервиса Redis                                                                      |
