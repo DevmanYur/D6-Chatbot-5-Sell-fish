@@ -24,8 +24,8 @@ def get_database_connection():
     return _database
 
 
-def get_callback_data(cart_id='_', product_id ='_', action='_', count='_', condition1='_', condition2='_'):
-    callback_data = f'{cart_id}&{product_id}&{action}&{count}&{condition1}&{condition2}'
+def get_callback_data(cart_id='_', product_id ='_', action='_', count='_', cartitem_id='_', order_status='_'):
+    callback_data = f'{cart_id}&{product_id}&{action}&{count}&{cartitem_id}&{order_status}'
     return callback_data
 
 
@@ -93,7 +93,7 @@ def start(update, context):
 
 def choice_from_start(update, context):
     user_reply = update.callback_query.data
-    cart_id, product_id, action, count, condition1, condition2 = user_reply.split('&')
+    cart_id, product_id, action, count, cartitem_id, order_status = user_reply.split('&')
     if  action =='M':
         return get_menu(update, context)
     if action =='C':
@@ -102,7 +102,7 @@ def choice_from_start(update, context):
 
 def choice_from_menu(update, context):
     user_reply = update.callback_query.data
-    cart_id, product_id, action, count, condition1, condition2 = user_reply.split('&')
+    cart_id, product_id, action, count, cartitem_id, order_status = user_reply.split('&')
     if action == 'P':
         return get_product(update, context)
     if action == 'C':
@@ -111,7 +111,7 @@ def choice_from_menu(update, context):
 
 def choice_from_cart(update, context):
     user_reply = update.callback_query.data
-    cart_id, product_id, action, count, condition1, condition2 = user_reply.split('&')
+    cart_id, product_id, action, count, cartitem_id, order_status = user_reply.split('&')
     if action =='Ci':
         return get_cart(update, context)
     if action =='M':
@@ -122,7 +122,7 @@ def choice_from_cart(update, context):
 
 def choice_from_product(update, context):
     user_reply = update.callback_query.data
-    cart_id, product_id, action, count, condition1, condition2 = user_reply.split('&')
+    cart_id, product_id, action, count, cartitem_id, order_status = user_reply.split('&')
     if action == 'S':
         return get_product(update, context)
     if action == 'M':
@@ -146,7 +146,7 @@ def get_menu(update, context):
     query = update.callback_query
     query.answer()
     user_reply = query.data
-    cart_id, product_id, action, count, condition1, condition2 = user_reply.split('&')
+    cart_id, product_id, action, count, cartitem_id, order_status = user_reply.split('&')
 
     cart_callback_data = get_callback_data(cart_id=cart_id, action='C')
 
@@ -177,12 +177,12 @@ def get_cart(update, context):
     query = update.callback_query
     query.answer()
     user_reply = query.data
-    cart_id, product_id, action, count, condition1, condition2 = user_reply.split('&')
+    cart_id, product_id, action, count, cartitem_id, order_status = user_reply.split('&')
 
     strapi_host, strapi_port, strapi_headers = get_strapi_connection()
 
     if action == 'Ci':
-        response = requests.delete(f'{strapi_host}{strapi_port}/api/cartitems/{condition1}', headers=strapi_headers)
+        response = requests.delete(f'{strapi_host}{strapi_port}/api/cartitems/{cartitem_id}', headers=strapi_headers)
         response.raise_for_status()
 
 
@@ -212,7 +212,7 @@ def get_cart(update, context):
                         f'Подитог: {pre_total}\n\n')
         body_text = body_text + text_product
 
-        callback_data = get_callback_data(cart_id=cart_id, action='Ci', condition1=cartitem_id)
+        callback_data = get_callback_data(cart_id=cart_id, action='Ci', cartitem_id=cartitem_id)
         keyboard_group = []
         keyboard_group.append(InlineKeyboardButton(f'Удалить {title}', callback_data=callback_data))
         keyboard.append(keyboard_group)
@@ -248,7 +248,7 @@ def get_product(update, context):
     query = update.callback_query
     query.answer()
     user_reply = query.data
-    cart_id, product_id, action, count, condition1, condition2 = user_reply.split('&')
+    cart_id, product_id, action, count, cartitem_id, order_status = user_reply.split('&')
 
     strapi_host, strapi_port, strapi_headers = get_strapi_connection()
 
