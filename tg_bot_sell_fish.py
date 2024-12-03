@@ -73,13 +73,12 @@ def handle_users_reply(update, context):
 def start(update, context):
     text = 'Магазин'
     tg_id = update.message.chat_id
-    tg_id_for_strapi = f'tg_id_{tg_id}'
-
     strapi_host, strapi_port, strapi_headers = get_strapi_connection()
-    carts_url = f'{strapi_host}{strapi_port}/api/carts'
-    payload = {'data': {'tg_id': tg_id_for_strapi}}
 
     try:
+        tg_id_for_strapi = f'tg_id_{tg_id}'
+        carts_url = f'{strapi_host}{strapi_port}/api/carts'
+        payload = {'data': {'tg_id': tg_id_for_strapi}}
         response = requests.post(carts_url, headers=strapi_headers, json=payload)
         response.raise_for_status()
     except Exception as err:
@@ -153,13 +152,11 @@ def get_menu(update, context):
     query.answer()
     user_reply = query.data
     cart_id, product_id, action, count, cartitem_id, order_status = user_reply.split('&')
-
     cart_callback_data = get_callback_data(cart_id=cart_id, action='C')
-
     strapi_host, strapi_port, strapi_headers = get_strapi_connection()
 
-    products_url = f'{strapi_host}{strapi_port}/api/products'
     try:
+        products_url = f'{strapi_host}{strapi_port}/api/products'
         response = requests.get(products_url, headers=strapi_headers)
         response.raise_for_status()
     except Exception as err:
@@ -193,18 +190,17 @@ def get_cart(update, context):
     strapi_host, strapi_port, strapi_headers = get_strapi_connection()
 
     if action == 'Ci':
-        cartitems_url = f'{strapi_host}{strapi_port}/api/cartitems/{cartitem_id}'
-
         try:
+            cartitems_url = f'{strapi_host}{strapi_port}/api/cartitems/{cartitem_id}'
             response = requests.delete(cartitems_url, headers=strapi_headers)
             response.raise_for_status()
         except Exception as err:
             logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
-    payload = {'populate[cartitems][populate][0]' : 'product'}
-    carts_url = f'{strapi_host}{strapi_port}/api/carts/{cart_id}'
     try:
-        response = requests.get(carts_url, headers=strapi_headers, data=payload)
+        payload = {'populate[cartitems][populate][0]': 'product'}
+        carts_url = f'{strapi_host}{strapi_port}/api/carts/{cart_id}/'
+        response = requests.get(carts_url, headers=strapi_headers, params=payload)
         response.raise_for_status()
     except Exception as err:
         logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
@@ -272,25 +268,22 @@ def get_product(update, context):
     strapi_host, strapi_port, strapi_headers = get_strapi_connection()
 
     if action == 'S':
-
-        cartitems_url = f'{strapi_host}{strapi_port}/api/cartitems'
-
-        payload = {'filters[cart][documentId][$eq]': f'{cart_id}',
-                   f'filters[product][documentId][$eq]' : f'{product_id}'}
+        cartitems_url = f'{strapi_host}{strapi_port}/api/cartitems/'
         try:
-            response = requests.get(cartitems_url, headers=strapi_headers, data=payload)
+            payload = {'filters[cart][documentId][$eq]': f'{cart_id}',
+                       'filters[product][documentId][$eq]': f'{product_id}'}
+            response = requests.get(cartitems_url, headers=strapi_headers, params=payload)
             response.raise_for_status()
         except Exception as err:
             logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
         cartitem = response.json()
         if cartitem['data'] == []:
-            cartitem_property = {'data': {'quantity': count,
-                             'product': product_id,
-                             'cart': cart_id}}
-            cartitems_url = f'{strapi_host}{strapi_port}/api/cartitems'
-
             try:
+                cartitem_property = {'data': {'quantity': count,
+                                              'product': product_id,
+                                              'cart': cart_id}}
+                cartitems_url = f'{strapi_host}{strapi_port}/api/cartitems'
                 response = requests.post(cartitems_url, headers=strapi_headers, json=cartitem_property)
                 response.raise_for_status()
             except Exception as err:
@@ -300,20 +293,17 @@ def get_product(update, context):
             cartitem_doc_id = cartitem['data'][0]['documentId']
             before_quantity = cartitem['data'][0]['quantity']
             after_quantity = int(before_quantity) + int(count)
-            cartitem_property = {'data': {'quantity': after_quantity
-                             }
-                    }
 
-            cartitems_url = f'{strapi_host}{strapi_port}/api/cartitems/{cartitem_doc_id}'
             try:
+                cartitem_property = {'data': {'quantity': after_quantity}}
+                cartitems_url = f'{strapi_host}{strapi_port}/api/cartitems/{cartitem_doc_id}'
                 response = requests.put(cartitems_url, headers=strapi_headers, json=cartitem_property)
                 response.raise_for_status()
             except Exception as err:
                 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
-    product_url = f'{strapi_host}{strapi_port}/api/products/{product_id}'
-
     try:
+        product_url = f'{strapi_host}{strapi_port}/api/products/{product_id}'
         response = requests.get(product_url, headers=strapi_headers)
         response.raise_for_status()
     except Exception as err:
