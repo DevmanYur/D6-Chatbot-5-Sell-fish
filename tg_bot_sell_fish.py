@@ -101,7 +101,9 @@ def choice_from_start(update, context):
     cart_id, product_id, action, count, cartitem_id, order_status = user_reply.split('&')
     if  action =='M':
         return get_menu(update, context)
+
     if action =='C':
+
         return get_cart(update, context)
 
 
@@ -110,6 +112,7 @@ def choice_from_menu(update, context):
     cart_id, product_id, action, count, cartitem_id, order_status = user_reply.split('&')
     if action == 'P':
         return get_product(update, context)
+
     if action == 'C':
         return get_cart(update, context)
 
@@ -119,8 +122,10 @@ def choice_from_cart(update, context):
     cart_id, product_id, action, count, cartitem_id, order_status = user_reply.split('&')
     if action =='Ci':
         return get_cart(update, context)
+
     if action =='M':
         return get_menu(update, context)
+
     if action =='Or':
         return  get_order(update, context)
 
@@ -130,10 +135,13 @@ def choice_from_product(update, context):
     cart_id, product_id, action, count, cartitem_id, order_status = user_reply.split('&')
     if action == 'S':
         return get_product(update, context)
+
     if action == 'M':
         return get_menu(update, context)
+
     if action == 'C':
         return get_cart(update, context)
+
 
 def choice_from_email(update, context):
     text = 'Введите телефон'
@@ -154,7 +162,6 @@ def get_menu(update, context):
     cart_id, product_id, action, count, cartitem_id, order_status = user_reply.split('&')
     cart_callback_data = get_callback_data(cart_id=cart_id, action='C')
     strapi_host, strapi_port, strapi_headers = get_strapi_connection()
-
     try:
         products_url = f'{strapi_host}{strapi_port}/api/products'
         response = requests.get(products_url, headers=strapi_headers)
@@ -163,7 +170,6 @@ def get_menu(update, context):
         logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
     products = response.json()['data']
-
     keyboard = []
     for product in products:
         title = product['title']
@@ -177,7 +183,6 @@ def get_menu(update, context):
 
     context.bot.send_message(chat_id=query.message.chat_id, text="Меню",reply_markup=reply_markup)
     context.bot.delete_message(chat_id=query.message.chat_id, message_id=query.message.message_id)
-
     return 'Выбор после Меню'
 
 
@@ -186,9 +191,7 @@ def get_cart(update, context):
     query.answer()
     user_reply = query.data
     cart_id, product_id, action, count, cartitem_id, order_status = user_reply.split('&')
-
     strapi_host, strapi_port, strapi_headers = get_strapi_connection()
-
     if action == 'Ci':
         try:
             cartitems_url = f'{strapi_host}{strapi_port}/api/cartitems/{cartitem_id}'
@@ -212,10 +215,8 @@ def get_cart(update, context):
     body_text = ''
 
     keyboard = []
-
     for cartitem in cart['data']['cartitems']:
         cartitem_id = cartitem['documentId']
-
         title = cartitem['product']['title']
         price = cartitem['product']['price']
         quantity = cartitem['quantity']
@@ -231,23 +232,16 @@ def get_cart(update, context):
         keyboard_group = []
         keyboard_group.append(InlineKeyboardButton(f'Удалить {title}', callback_data=callback_data))
         keyboard.append(keyboard_group)
-
     footer_text = (f'-----------\n\n'
                    f'Итого {total}')
-
     cart_description = head_text + body_text + footer_text
-
     menu_callback_data = get_callback_data(cart_id=cart_id, action='M')
     order_callback_data = get_callback_data(cart_id=cart_id, action='Or')
     keyboard.append([InlineKeyboardButton("Меню", callback_data=menu_callback_data)])
     keyboard.append([InlineKeyboardButton('Оформить заказ', callback_data=order_callback_data)])
-
-
     reply_markup = InlineKeyboardMarkup(keyboard)
-
     context.bot.send_message(chat_id=query.message.chat_id, text=cart_description,reply_markup=reply_markup)
     context.bot.delete_message(chat_id=query.message.chat_id, message_id=query.message.message_id)
-
     return 'Выбор после Корзины'
 
 
@@ -264,12 +258,10 @@ def get_product(update, context):
     query.answer()
     user_reply = query.data
     cart_id, product_id, action, count, cartitem_id, order_status = user_reply.split('&')
-
     strapi_host, strapi_port, strapi_headers = get_strapi_connection()
-
     if action == 'S':
-        cartitems_url = f'{strapi_host}{strapi_port}/api/cartitems/'
         try:
+            cartitems_url = f'{strapi_host}{strapi_port}/api/cartitems/'
             payload = {'filters[cart][documentId][$eq]': f'{cart_id}',
                        'filters[product][documentId][$eq]': f'{product_id}'}
             response = requests.get(cartitems_url, headers=strapi_headers, params=payload)
@@ -278,6 +270,7 @@ def get_product(update, context):
             logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
         cartitem = response.json()
+
         if cartitem['data'] == []:
             try:
                 cartitem_property = {'data': {'quantity': count,
@@ -339,7 +332,6 @@ def get_product(update, context):
 
     context.bot.send_message(chat_id=query.message.chat_id, text=text,reply_markup=reply_markup)
     context.bot.delete_message(chat_id=query.message.chat_id, message_id=query.message.message_id)
-
     return 'Выбор после Продукта'
 
 
