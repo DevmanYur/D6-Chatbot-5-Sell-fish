@@ -74,10 +74,16 @@ def start(update, context):
     text = 'Магазин'
     tg_id = update.message.chat_id
     tg_id_for_strapi = f'tg_id_{tg_id}'
-    data = {'data': {'tg_id': tg_id_for_strapi}}
+
     strapi_host, strapi_port, strapi_headers = get_strapi_connection()
-    response = requests.post(f'{strapi_host}{strapi_port}/api/carts', headers=strapi_headers, json=data)
-    response.raise_for_status()
+    carts_url = f'{strapi_host}{strapi_port}/api/carts'
+    payload = {'data': {'tg_id': tg_id_for_strapi}}
+
+    try:
+        response = requests.post(carts_url, headers=strapi_headers, json=payload)
+        response.raise_for_status()
+    except Exception as err:
+        logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
     cart = response.json()
     new_cart_id = cart['data']['documentId']
@@ -151,8 +157,13 @@ def get_menu(update, context):
     cart_callback_data = get_callback_data(cart_id=cart_id, action='C')
 
     strapi_host, strapi_port, strapi_headers = get_strapi_connection()
-    response = requests.get(f'{strapi_host}{strapi_port}/api/products', headers=strapi_headers)
-    response.raise_for_status()
+
+    products_url = f'{strapi_host}{strapi_port}/api/products'
+    try:
+        response = requests.get(products_url, headers=strapi_headers)
+        response.raise_for_status()
+    except Exception as err:
+        logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
     products = response.json()['data']
 
@@ -182,13 +193,21 @@ def get_cart(update, context):
     strapi_host, strapi_port, strapi_headers = get_strapi_connection()
 
     if action == 'Ci':
-        response = requests.delete(f'{strapi_host}{strapi_port}/api/cartitems/{cartitem_id}', headers=strapi_headers)
+        cartitems_url = f'{strapi_host}{strapi_port}/api/cartitems/{cartitem_id}'
+
+        try:
+            response = requests.delete(cartitems_url, headers=strapi_headers)
+            response.raise_for_status()
+        except Exception as err:
+            logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+
+    payload = {'populate[cartitems][populate][0]' : 'product'}
+    carts_url = f'{strapi_host}{strapi_port}/api/carts/{cart_id}'
+    try:
+        response = requests.get(carts_url, headers=strapi_headers, data=payload)
         response.raise_for_status()
-
-
-    response = requests.get(
-        f'{strapi_host}{strapi_port}/api/carts/{cart_id}?populate[cartitems][populate][0]=product', headers=strapi_headers)
-    response.raise_for_status()
+    except Exception as err:
+        logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
     cart = response.json()
     total = 0
@@ -253,19 +272,29 @@ def get_product(update, context):
     strapi_host, strapi_port, strapi_headers = get_strapi_connection()
 
     if action == 'S':
-        response = requests.get(f'{strapi_host}{strapi_port}/api/cartitems?'
-                                f'filters[cart][documentId][$eq]={cart_id}'
-                                f'&'
-                                f'filters[product][documentId][$eq]={product_id}', headers=strapi_headers)
-        response.raise_for_status()
+
+        cartitems_url = f'{strapi_host}{strapi_port}/api/cartitems'
+
+        payload = {'filters[cart][documentId][$eq]': f'{cart_id}',
+                   f'filters[product][documentId][$eq]' : f'{product_id}'}
+        try:
+            response = requests.get(cartitems_url, headers=strapi_headers, data=payload)
+            response.raise_for_status()
+        except Exception as err:
+            logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
         cartitem = response.json()
         if cartitem['data'] == []:
             cartitem_property = {'data': {'quantity': count,
                              'product': product_id,
                              'cart': cart_id}}
-            response = requests.post(f'{strapi_host}{strapi_port}/api/cartitems', headers=strapi_headers, json=cartitem_property)
-            response.raise_for_status()
+            cartitems_url = f'{strapi_host}{strapi_port}/api/cartitems'
+
+            try:
+                response = requests.post(cartitems_url, headers=strapi_headers, json=cartitem_property)
+                response.raise_for_status()
+            except Exception as err:
+                logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
         if cartitem['data'] != []:
             cartitem_doc_id = cartitem['data'][0]['documentId']
@@ -274,11 +303,22 @@ def get_product(update, context):
             cartitem_property = {'data': {'quantity': after_quantity
                              }
                     }
-            response = requests.put(f'{strapi_host}{strapi_port}/api/cartitems/{cartitem_doc_id}', headers=strapi_headers, json=cartitem_property)
-            response.raise_for_status()
 
-    response = requests.get(f'{strapi_host}{strapi_port}/api/products/{product_id}', headers=strapi_headers)
-    response.raise_for_status()
+            cartitems_url = f'{strapi_host}{strapi_port}/api/cartitems/{cartitem_doc_id}'
+            try:
+                response = requests.put(cartitems_url, headers=strapi_headers, json=cartitem_property)
+                response.raise_for_status()
+            except Exception as err:
+                logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+
+    product_url = f'{strapi_host}{strapi_port}/api/products/{product_id}'
+
+    try:
+        response = requests.get(product_url, headers=strapi_headers)
+        response.raise_for_status()
+    except Exception as err:
+        logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+        
     product = response.json()
     title = product['data']['title']
     price = product['data']['price']
