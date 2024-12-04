@@ -1,5 +1,6 @@
 import os
 import logging
+from functools import partial
 
 import redis
 import requests
@@ -9,7 +10,9 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Filters, Updater
 from telegram.ext import CallbackQueryHandler, CommandHandler, MessageHandler
 
+
 logger = logging.getLogger(__name__)
+
 
 _database = None
 
@@ -29,15 +32,7 @@ def get_callback_data(cart_id='_', product_id ='_', action='_', count='_', carti
     return callback_data
 
 
-def get_strapi_connection():
-    strapi_token = os.getenv("STRAPI_TOKEN")
-    strapi_host = os.getenv("STRAPI_HOST")
-    strapi_port = os.getenv("STRAPI_PORT")
-    strapi_headers = {'Authorization': f'Bearer {strapi_token}'}
-    return strapi_host, strapi_port, strapi_headers
-
-
-def handle_users_reply(update, context):
+def handle_users_reply(update, context, strapi_settings=None):
     db = get_database_connection()
     if update.message:
         user_reply = update.message.text
@@ -53,14 +48,13 @@ def handle_users_reply(update, context):
     else:
         user_state = db.get(chat_id).decode("utf-8")
     states_functions = {
-        'START': start,
-        'Выбор после start': choice_from_start,
-        'Выбор после Меню': choice_from_menu,
-        'Выбор после Корзины': choice_from_cart,
-        'Выбор после Продукта' : choice_from_product,
-        "Выбор после e-mail" : choice_from_email,
-        "Выбор после телефона" : choice_from_phone
-
+        'START': partial(start, strapi_settings = strapi_settings),
+        'Выбор после start': partial(choice_from_start, strapi_settings = strapi_settings),
+        'Выбор после Меню': partial(choice_from_menu, strapi_settings = strapi_settings),
+        'Выбор после Корзины': partial(choice_from_cart, strapi_settings = strapi_settings),
+        'Выбор после Продукта' : partial(choice_from_product, strapi_settings = strapi_settings),
+        "Выбор после e-mail" : partial(choice_from_email, strapi_settings = strapi_settings),
+        "Выбор после телефона" : partial(choice_from_phone, strapi_settings = strapi_settings),
     }
     state_handler = states_functions[user_state]
     try:
@@ -70,10 +64,10 @@ def handle_users_reply(update, context):
         logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
 
-def start(update, context):
+def start(update, context, strapi_settings=None):
     text = 'Магазин'
     tg_id = update.message.chat_id
-    strapi_host, strapi_port, strapi_headers = get_strapi_connection()
+    strapi_host, strapi_port, strapi_headers = strapi_settings
 
     try:
         tg_id_for_strapi = f'tg_id_{tg_id}'
@@ -96,72 +90,71 @@ def start(update, context):
     return "Выбор после start"
 
 
-def choice_from_start(update, context):
+def choice_from_start(update, context, strapi_settings=None):
     user_reply = update.callback_query.data
     cart_id, product_id, action, count, cartitem_id, order_status = user_reply.split('&')
     if  action =='M':
-        return get_menu(update, context)
+        return get_menu(update, context, strapi_settings=strapi_settings)
 
     if action =='C':
+        return get_cart(update, context, strapi_settings=strapi_settings)
 
-        return get_cart(update, context)
 
-
-def choice_from_menu(update, context):
+def choice_from_menu(update, context, strapi_settings=None):
     user_reply = update.callback_query.data
     cart_id, product_id, action, count, cartitem_id, order_status = user_reply.split('&')
     if action == 'P':
-        return get_product(update, context)
+        return get_product(update, context, strapi_settings=strapi_settings)
 
     if action == 'C':
-        return get_cart(update, context)
+        return get_cart(update, context, strapi_settings=strapi_settings)
 
 
-def choice_from_cart(update, context):
+def choice_from_cart(update, context, strapi_settings=None):
     user_reply = update.callback_query.data
     cart_id, product_id, action, count, cartitem_id, order_status = user_reply.split('&')
     if action =='Ci':
-        return get_cart(update, context)
+        return get_cart(update, context, strapi_settings=strapi_settings)
 
     if action =='M':
-        return get_menu(update, context)
+        return get_menu(update, context, strapi_settings=strapi_settings)
 
     if action =='Or':
-        return  get_order(update, context)
+        return  get_order(update, context, strapi_settings=strapi_settings)
 
 
-def choice_from_product(update, context):
+def choice_from_product(update, context, strapi_settings=None):
     user_reply = update.callback_query.data
     cart_id, product_id, action, count, cartitem_id, order_status = user_reply.split('&')
     if action == 'S':
-        return get_product(update, context)
+        return get_product(update, context, strapi_settings=strapi_settings)
 
     if action == 'M':
-        return get_menu(update, context)
+        return get_menu(update, context, strapi_settings=strapi_settings)
 
     if action == 'C':
-        return get_cart(update, context)
+        return get_cart(update, context, strapi_settings=strapi_settings)
 
 
-def choice_from_email(update, context):
+def choice_from_email(update, context, strapi_settings=None):
     text = 'Введите телефон'
     update.message.reply_text(text=text)
     return "Выбор после телефона"
 
 
-def choice_from_phone(update, context):
+def choice_from_phone(update, context, strapi_settings=None):
     text = 'Заказ оформлен'
     update.message.reply_text(text=text)
     return ''
 
 
-def get_menu(update, context):
+def get_menu(update, context, strapi_settings=None):
     query = update.callback_query
     query.answer()
     user_reply = query.data
     cart_id, product_id, action, count, cartitem_id, order_status = user_reply.split('&')
     cart_callback_data = get_callback_data(cart_id=cart_id, action='C')
-    strapi_host, strapi_port, strapi_headers = get_strapi_connection()
+    strapi_host, strapi_port, strapi_headers = strapi_settings
     try:
         products_url = f'{strapi_host}{strapi_port}/api/products'
         response = requests.get(products_url, headers=strapi_headers)
@@ -186,12 +179,12 @@ def get_menu(update, context):
     return 'Выбор после Меню'
 
 
-def get_cart(update, context):
+def get_cart(update, context, strapi_settings=None):
     query = update.callback_query
     query.answer()
     user_reply = query.data
     cart_id, product_id, action, count, cartitem_id, order_status = user_reply.split('&')
-    strapi_host, strapi_port, strapi_headers = get_strapi_connection()
+    strapi_host, strapi_port, strapi_headers = strapi_settings
     if action == 'Ci':
         try:
             cartitems_url = f'{strapi_host}{strapi_port}/api/cartitems/{cartitem_id}'
@@ -245,7 +238,7 @@ def get_cart(update, context):
     return 'Выбор после Корзины'
 
 
-def get_order(update, context):
+def get_order(update, context, strapi_settings=None):
     query = update.callback_query
     query.answer()
     text = 'Пришлите, пожалуйста, ваш e-mail'
@@ -253,12 +246,12 @@ def get_order(update, context):
     return "Выбор после e-mail"
 
 
-def get_product(update, context):
+def get_product(update, context, strapi_settings=None):
     query = update.callback_query
     query.answer()
     user_reply = query.data
     cart_id, product_id, action, count, cartitem_id, order_status = user_reply.split('&')
-    strapi_host, strapi_port, strapi_headers = get_strapi_connection()
+    strapi_host, strapi_port, strapi_headers = strapi_settings
     if action == 'S':
         try:
             cartitems_url = f'{strapi_host}{strapi_port}/api/cartitems/'
@@ -340,11 +333,20 @@ if __name__ == '__main__':
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
     load_dotenv()
+
+    strapi_token = os.getenv("STRAPI_TOKEN")
+    strapi_host = os.getenv("STRAPI_HOST")
+    strapi_port = os.getenv("STRAPI_PORT")
+    strapi_headers = {'Authorization': f'Bearer {strapi_token}'}
+    strapi_settings = [strapi_host, strapi_port, strapi_headers]
+
+    get_handle_users_reply = partial(handle_users_reply, strapi_settings = strapi_settings)
+
     token = os.getenv("TELEGRAM_TOKEN")
     updater = Updater(token)
     dispatcher = updater.dispatcher
-    dispatcher.add_handler(CallbackQueryHandler(handle_users_reply))
-    dispatcher.add_handler(MessageHandler(Filters.text, handle_users_reply))
-    dispatcher.add_handler(CommandHandler('start', handle_users_reply))
+    dispatcher.add_handler(CallbackQueryHandler(get_handle_users_reply))
+    dispatcher.add_handler(MessageHandler(Filters.text, get_handle_users_reply))
+    dispatcher.add_handler(CommandHandler('start', get_handle_users_reply))
     updater.start_polling()
     updater.idle()
