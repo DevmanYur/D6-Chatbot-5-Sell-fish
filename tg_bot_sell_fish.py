@@ -17,12 +17,10 @@ logger = logging.getLogger(__name__)
 _database = None
 
 
-def get_database_connection():
+def get_database_connection(database_settings):
     global _database
+    database_host, database_port, database_password = database_settings
     if _database is None:
-        database_password = os.getenv("REDIS_PASSWORD")
-        database_host = os.getenv("REDIS_HOST")
-        database_port = os.getenv("REDIS_PORT")
         _database = redis.Redis(host=database_host, port=database_port, password=database_password)
     return _database
 
@@ -32,8 +30,8 @@ def get_callback_data(cart_id='_', product_id ='_', action='_', count='_', carti
     return callback_data
 
 
-def handle_users_reply(update, context, strapi_settings=None):
-    db = get_database_connection()
+def handle_users_reply(update, context, strapi_settings=None, database_settings =None):
+    db = get_database_connection(database_settings)
     if update.message:
         user_reply = update.message.text
         chat_id = update.message.chat_id
@@ -340,7 +338,14 @@ if __name__ == '__main__':
     strapi_headers = {'Authorization': f'Bearer {strapi_token}'}
     strapi_settings = [strapi_host, strapi_port, strapi_headers]
 
-    get_handle_users_reply = partial(handle_users_reply, strapi_settings = strapi_settings)
+    database_host = os.getenv("REDIS_HOST")
+    database_port = os.getenv("REDIS_PORT")
+    database_password = os.getenv("REDIS_PASSWORD")
+    database_settings = [database_host, database_port, database_password]
+
+    get_handle_users_reply = partial(handle_users_reply,
+                                     strapi_settings = strapi_settings,
+                                     database_settings = database_settings)
 
     token = os.getenv("TELEGRAM_TOKEN")
     updater = Updater(token)
